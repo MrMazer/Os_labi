@@ -5,7 +5,7 @@
 #include <limits.h>
 
 #define MAX_THREADS 16
-#define MAX_ARRAY_SIZE 100000000
+#define MAX_ARRAY_SIZE 20000000
 
 int data[MAX_ARRAY_SIZE];
 int array_size = 0;
@@ -20,7 +20,7 @@ void* find_min_max(void *arg){
 
     int chunk_size = array_size / thread_count;
     int start_index = thread_id * chunk_size;
-    int end_index = (thread_id == (thread_count -1)) ? array_size : (start_index+ chunk_size);
+    int end_index = (thread_id == (thread_count - 1)) ? array_size : (start_index+ chunk_size);
 
     int local_min = INT_MAX;
     int local_max = INT_MIN;
@@ -99,6 +99,5 @@ int main(int argc, char* argv[]){
     printf("Number of threads used: %d\n", thread_count);
     printf("Program execution time: %.2f s\n", execution_time);
     
+    return 0;
 }
-
-
