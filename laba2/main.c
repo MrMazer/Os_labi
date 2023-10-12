@@ -3,6 +3,8 @@
 #include<pthread.h>
 #include<sys/time.h>
 
+pthread_mutex_t global_mutex = PTHREAD_MUTEX_INITIALIZER;
+
 struct ThreadData{
     int* data;
     int size;
@@ -26,8 +28,8 @@ void* findMinimunMaximun(void* arg){
         }
     }
     
-    pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-    pthread_mutex_lock(&mutex);
+    
+    pthread_mutex_lock(&global_mutex);
 
     if(minimum < *(thread_data->minimum)){
         *(thread_data->minimum) = minimum;
@@ -37,7 +39,7 @@ void* findMinimunMaximun(void* arg){
         *(thread_data->maximun) = maximun;
     }
 
-    pthread_mutex_unlock(&mutex);
+    pthread_mutex_unlock(&global_mutex);
 
     pthread_exit(NULL);
 }   
