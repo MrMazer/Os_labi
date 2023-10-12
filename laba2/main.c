@@ -1,103 +1,104 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<pthread.h>
-#include<time.h>
-#include <limits.h>
+#include<sys/time.h>
 
-#define MAX_THREADS 16
-#define MAX_ARRAY_SIZE 20000000
+struct ThreadData{
+    int* data;
+    int size;
+    int thread_id;
+    int number_threads;
+    int* minimum;
+    int* maximun;
+};
 
-int data[MAX_ARRAY_SIZE];
-int array_size = 0;
-int min_result = INT_MAX;
-int max_result = INT_MIN;
+void* findMinimunMaximun(void* arg){
+    struct ThreadData* thread_data = (struct ThreadData*)arg;
+    int minimum = thread_data->data[0];
+    int maximun = thread_data->data[0];
 
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-int thread_count = 0;
-
-void* find_min_max(void *arg){
-    int thread_id = *((int*)arg);
-
-    int chunk_size = array_size / thread_count;
-    int start_index = thread_id * chunk_size;
-    int end_index = (thread_id == (thread_count - 1)) ? array_size : (start_index+ chunk_size);
-
-    int local_min = INT_MAX;
-    int local_max = INT_MIN;
-
-    for(int arr_index = start_index; arr_index < end_index; arr_index++){
-        
-        if(data[arr_index] < local_min){
-            local_min = data[arr_index];
+    for (int index = thread_data->thread_id; index < thread_data->size; index += thread_data-> number_threads){
+        if(thread_data-> data[index]< minimum){
+            minimum = thread_data -> data[index];
         }
-
-        if(data[arr_index] > local_max){
-            local_max = data[arr_index];
+        if(thread_data -> data[index] > maximun){
+            maximun = thread_data->data[index];
         }
     }
+    
+    pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
     pthread_mutex_lock(&mutex);
 
-    if(local_min < min_result){
-        min_result = local_min;
+    if(minimum < *(thread_data->minimum)){
+        *(thread_data->minimum) = minimum;
     }
-    if(local_max > max_result){
-        max_result = local_max;
+
+    if(maximun > *(thread_data->maximun)){
+        *(thread_data->maximun) = maximun;
     }
-    
-    
 
     pthread_mutex_unlock(&mutex);
-    
-    return NULL;
-}
+
+    pthread_exit(NULL);
+}   
+
 
 int main(int argc, char* argv[]){
-    if(argc != 3){
-        printf("Using %s<filename> <number of threads>\n", argv[0]);
+    if(argc != 4){
+        printf("Usage: %s <num_threads> <data_file> <array_size>\n", argv[0]);
         return 1;
     }
 
-    int number_of_threads = atoi(argv[2]);
-    
-    if(number_of_threads <= 0 || number_of_threads > MAX_THREADS){
-        printf("incorrect numbers of threads. allowed value : from 1 to %d\n", MAX_THREADS);
-    }
+    int number_threads = atoi(argv[1]);
+    const char* filename = argv[2];
+    int size = atoi(argv[3]);
 
-    clock_t start_time = clock();
+    int* data = (int*)malloc(sizeof(int) * size);
 
-    FILE* file = fopen(argv[1], "r");
+    FILE* file = fopen(filename, "r");
+
     if(file == NULL){
-        perror("error file open");
+        perror("Error openning file");
         return 1;
     }
 
-    while (fscanf(file, "%d", &data[array_size]) != EOF && array_size < MAX_ARRAY_SIZE){
-        array_size++;
+    for(int index = 0; index < size; index ++){
+        fscanf(file, "%d", &data[index]);
     }
-
     fclose(file);
 
-    pthread_t threads[MAX_THREADS];
-    int thread_ids[MAX_THREADS];
+    int minimum = data[0];
+    int maximum = data[0];
 
-    thread_count = number_of_threads;
+    pthread_t threads[number_threads];
 
-    for(int thread_index = 0; thread_index < number_of_threads; thread_index++){
-        thread_ids[thread_index] = thread_index;
-        pthread_create(&threads[thread_index], NULL, find_min_max, &thread_ids[thread_index]);
+    struct  ThreadData thread_data[number_threads];
+   
+    struct  timeval start, end;
+
+    gettimeofday(&start, NULL);
+
+    for(int index_of_thread = 0; index_of_thread < number_threads; index_of_thread++){
+        thread_data[index_of_thread].data = data;
+        thread_data[index_of_thread].size = size;
+        thread_data[index_of_thread].thread_id = index_of_thread;
+        thread_data[index_of_thread].number_threads = number_threads;
+        thread_data[index_of_thread].minimum = &minimum;
+        thread_data[index_of_thread].maximun = &maximum;
+        pthread_create(&threads[index_of_thread], NULL, findMinimunMaximun, &thread_data[index_of_thread]);
     }
     
-    for(int thread_index = 0; thread_index < number_of_threads; thread_index++){
-        pthread_join(threads[thread_index], NULL);
+    for(int index_of_thread = 0; index_of_thread < number_threads; index_of_thread++){
+        pthread_join(threads[index_of_thread], NULL);
     }
 
-    clock_t end_time = clock();
-    double execution_time = (double)(end_time - start_time) / CLOCKS_PER_SEC;
+    gettimeofday(&end, NULL);
+    double time_taken = (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec) / 1e5;
+   
+   printf("Mininum: %d\n", minimum);
+   printf("Maximum %d\n", maximum);
+   printf("Execution time: %f seconds\n", time_taken);
 
-    printf("minumum value: %d\n", min_result);
-    printf("max value: %d\n", max_result);
-    printf("Number of threads used: %d\n", thread_count);
-    printf("Program execution time: %.2f s\n", execution_time);
-    
-    return 0;
+   free(data);
+   return 0;
 }
