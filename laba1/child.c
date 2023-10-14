@@ -25,5 +25,6 @@ int main(int argc, char *argv[]){
 
     printf("sum of the numbers from the file %s: %.2f\n", filename, sum);
     
+    
     return 0;
 }

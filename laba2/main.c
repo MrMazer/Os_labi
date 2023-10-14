@@ -95,11 +95,11 @@ int main(int argc, char* argv[]){
     }
 
     gettimeofday(&end, NULL);
-    double time_taken = (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec) / 1e5;
+    double time_taken = (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec) / 1e3;
    
    printf("Mininum: %d\n", minimum);
    printf("Maximum %d\n", maximum);
-   printf("Execution time: %f seconds\n", time_taken);
+   printf("Execution time: %f milliseconds\n", time_taken);
 
    free(data);
    return 0;

@@ -49,10 +49,10 @@ int main() {
 
         char buffer[1234];
 
-        ssize_t n;
+        ssize_t bytes_read;
 
-        while ((n = read(pipe_[0], buffer, sizeof(buffer))) > 0) {
-            write(STDOUT_FILENO, buffer, n);
+        while ((bytes_read = read(pipe_[0], buffer, sizeof(buffer))) > 0) {
+            write(STDOUT_FILENO, buffer, bytes_read);
         }
 
         close(pipe_[0]);
