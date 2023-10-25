@@ -1,80 +1,78 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
-#include <sys/wait.h>
 #include <sys/mman.h>
+#include <sys/wait.h>
 #include <fcntl.h>
-#include <string.h>
-
-
-typedef struct {
-    float numbers[100]; // to do сделать произвольное число чисел
-    int count;
-    float sum;
-} SharedData;
+#include <sys/stat.h>
 
 int main() {
-    pid_t pid;
-    SharedData *data;
-    int fd;
+    char filename[256];
+    printf("Введите имя файла для чтения: ");
+    scanf("%s", filename);
 
-    fd = shm_open("/my_shm", O_CREAT | O_RDWR, 0666);
+    int fd = open("shared_file", O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
     if (fd == -1) {
-        perror("shm_open");
-        exit(1);
+        perror("open");
+        exit(EXIT_FAILURE);
     }
 
-    ftruncate(fd, sizeof(SharedData));
+    size_t file_size = sizeof(float);
+    if (ftruncate(fd, file_size) == -1) {
+        perror("ftruncate");
+        exit(EXIT_FAILURE);
+    }
 
-    data = mmap(NULL, sizeof(SharedData), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-    if (data == MAP_FAILED) {
+    float *shared_data = mmap(NULL, file_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    if (shared_data == MAP_FAILED) {
         perror("mmap");
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 
-    data->count = 0;
-    data->sum = 0;
+    pid_t child_pid = fork();
 
-    FILE *file;
-        char filename[256];
-        
-        printf("Введите имя файла с данными: \n");
-        if (scanf("%s", filename) != 1) {
-            perror("scanf");
-            exit(1);
-        }
-
-    pid = fork();
-
-    if (pid == -1) {
+    if (child_pid == -1) {
         perror("fork");
-        exit(1);
-    } else if (pid == 0) {
-        
+        exit(EXIT_FAILURE);
+    }
 
-        file = fopen(filename, "r");
-        if (!file) {
+    if (child_pid == 0) {
+        // Дочерний процесс
+
+        // Открываем файл для чтения
+        FILE *file = fopen(filename, "r");
+        if (file == NULL) {
             perror("fopen");
-            exit(1);
+            exit(EXIT_FAILURE);
         }
 
-        char line[256];
+        float sum = 0;
         float num;
-        while (fgets(line, sizeof(line), file) != NULL) {
-            if (sscanf(line, "%f", &num) == 1) {
-                data->sum += num;
-                data->count++;
-            }
+
+        while (fscanf(file, "%f", &num) != EOF) {
+            sum += num;
         }
 
         fclose(file);
-    } else {
-        wait(NULL);
-        printf("Сумма чисел: %.2f\n", data->sum);
-        munmap(data, sizeof(SharedData));
-        shm_unlink("/my_shm");
-    }
 
-    return 0;
+        // Записываем результат в отображенный файл
+        *shared_data = sum;
+
+        munmap(shared_data, file_size);
+        close(fd);
+        exit(EXIT_SUCCESS);
+    } else {
+        int status;
+        waitpid(child_pid, &status, 0);
+
+        float result = *shared_data;
+        printf("Результат: %.2f\n", result);
+
+        munmap(shared_data, file_size);
+        close(fd);
+        unlink("shared_file");
+        exit(EXIT_SUCCESS);
+    }
 }
