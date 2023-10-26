@@ -1,76 +1,65 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <sys/types.h>
-#include <sys/wait.h>
+#include <sys/mman.h>
+#include <fcntl.h>
+#include <semaphore.h>
+#include <errno.h>
 
+// Переменные для имен и размеров
+char SEM_NAME[] = "/my_semaphore";
+char SHARED_FILE[] = "shared_file";
 
-
-int main() {
-    // Открываем pipe для записи
-    int pipe_fd[2];
-    if (pipe(pipe_fd) == -1) {
-        perror("pipe");
+int main(int argc, char *argv[]) {
+    if (argc != 2) {
+        fprintf(stderr, "Использование: %s <имя_файла>\n", argv[0]);
         exit(EXIT_FAILURE);
     }
 
-    // Создаем дочерний процесс
-    pid_t child_pid = fork();
+    char *file_name = argv[1];
 
-    if (child_pid == -1) {
-        perror("fork");
+    // Открываем файл для чтения
+    FILE *file = fopen(file_name, "r");
+    if (file == NULL) {
+        perror("fopen");
         exit(EXIT_FAILURE);
     }
 
-    if (child_pid == 0) {
-        // Дочерний процесс
+    float sum = 0;
+    float number;
 
-        // Закрываем стандартный ввод дочернего процесса
-        close(STDIN_FILENO);
-
-        // Дублируем pipe для стандартного ввода
-        dup2(pipe_fd[0], STDIN_FILENO);
-        close(pipe_fd[1]);
-
-        // Выполняем вычисления
-        float sum = 0;
-        float num;
-
-        while (scanf("%f", &num) != EOF) {
-            sum += num;
-        }
-
-        printf("%.2f\n");
-        exit(EXIT_SUCCESS);
-    } else {
-        // Родительский процесс
-
-        // Закрываем стандартный вывод дочернего процесса
-        close(STDOUT_FILENO);
-
-        // Дублируем pipe для стандартного вывода
-        dup2(pipe_fd[1], STDOUT_FILENO);
-        close(pipe_fd[0]);
-
-        // Читаем данные из файла и отправляем их в дочерний процесс
-        FILE *file = fopen("input.txt", "r");
-
-        if (file == NULL) {
-            perror("fopen");
-            exit(EXIT_FAILURE);
-        }
-
-        float num;
-
-        while (fscanf(file, "%f", &num) != EOF) {
-            printf("%.2f\n", num);
-        }
-
-        fclose(file);
-        close(pipe_fd[1]);
-
-        int status;
-        waitpid(child_pid, &status, 0);
-        exit(EXIT_SUCCESS);
+    while (fscanf(file, "%f", &number) != EOF) {
+        sum += number;
     }
+
+    fclose(file);
+
+    int file_descriptor = open(SHARED_FILE, O_RDWR);
+    if (file_descriptor == -1) {
+        perror("open");
+        exit(EXIT_FAILURE);
+    }
+
+    size_t file_size = sizeof(float);
+    float *shared_data = mmap(NULL, file_size, PROT_READ | PROT_WRITE, MAP_SHARED, file_descriptor, 0);
+    if (shared_data == MAP_FAILED) {
+        perror("mmap");
+        exit(EXIT_FAILURE);
+    }
+
+    *shared_data = sum;
+
+    // Открываем семафор
+    sem_t *semaphore = sem_open(SEM_NAME, 0);
+    if (semaphore == SEM_FAILED) {
+        perror("sem_open");
+        exit(EXIT_FAILURE);
+    }
+
+    sem_post(semaphore); // Сообщаем родительскому процессу, что вычисления завершены
+
+    munmap(shared_data, file_size);
+    close(file_descriptor);
+
+    exit(EXIT_SUCCESS);
 }
