@@ -62,4 +62,6 @@ int main(int argc, char *argv[]) {
     close(file_descriptor);
 
     exit(EXIT_SUCCESS);
+    
+    return 0;
 }

@@ -75,4 +75,5 @@ int main() {
         unlink(SHARED_FILE);
         exit(EXIT_SUCCESS);
     }
+    return 0;
 }
