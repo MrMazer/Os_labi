@@ -6,7 +6,7 @@
 #include <semaphore.h>
 #include <errno.h>
 
-// Переменные для имен и размеров
+
 char SEM_NAME[] = "/my_semaphore";
 char SHARED_FILE[] = "shared_file";
 
@@ -18,7 +18,7 @@ int main(int argc, char *argv[]) {
 
     char *file_name = argv[1];
 
-    // Открываем файл для чтения
+    
     FILE *file = fopen(file_name, "r");
     if (file == NULL) {
         perror("fopen");
@@ -52,11 +52,11 @@ int main(int argc, char *argv[]) {
     // Открываем семафор
     sem_t *semaphore = sem_open(SEM_NAME, 0);
     if (semaphore == SEM_FAILED) {
-        perror("sem_open");
+        perror("semaphore_open");
         exit(EXIT_FAILURE);
     }
 
-    sem_post(semaphore); // Сообщаем родительскому процессу, что вычисления завершены
+    sem_post(semaphore); 
 
     munmap(shared_data, file_size);
     close(file_descriptor);

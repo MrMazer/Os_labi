@@ -10,7 +10,7 @@
 #include <semaphore.h>
 #include <errno.h>
 
-// Переменные для имен и размеров
+
 char SEM_NAME[] = "/my_semaphore";
 char SHARED_FILE[] = "shared_file";
 char FILE_NAME[256];
@@ -38,11 +38,11 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
-    // Создаем семафор, если он не существует
+    // Создаем семафор
     sem_t *semaphore = sem_open(SEM_NAME, O_CREAT | O_EXCL, S_IRUSR | S_IWUSR, 0);
     if (semaphore == SEM_FAILED) {
         if (errno == EEXIST) {
-            // Если семафор уже существует, открываем его
+            
             semaphore = sem_open(SEM_NAME, 0);
         } else {
             perror("semaphore_open");
@@ -64,12 +64,12 @@ int main() {
         waitpid(process_id, &status, 0);
 
         float result;
-        sem_wait(semaphore); // Ждем, пока дочерний процесс завершит вычисления
+        sem_wait(semaphore); 
         result = *shared_data;
         printf("Результат: %.2f\n", result);
 
         sem_close(semaphore);
-        sem_unlink(SEM_NAME); // Удаляем семафор
+        sem_unlink(SEM_NAME); 
         munmap(shared_data, file_size);
         close(file_descriptor);
         unlink(SHARED_FILE);
