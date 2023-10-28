@@ -10,7 +10,6 @@
 #include <semaphore.h>
 #include <errno.h>
 
-
 char SEM_NAME[] = "/my_semaphore";
 char SHARED_FILE[] = "shared_file";
 char FILE_NAME[256];
@@ -20,9 +19,9 @@ int main() {
     printf("Введите имя файла для чтения: ");
     scanf("%s", FILE_NAME);
 
-    int file_descriptor = open(SHARED_FILE, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+    int file_descriptor = shm_open(SHARED_FILE, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
     if (file_descriptor == -1) {
-        perror("open");
+        perror("shm_open");
         exit(EXIT_FAILURE);
     }
 
@@ -38,11 +37,10 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
-    // Создаем семафор
+    // cемафор
     sem_t *semaphore = sem_open(SEM_NAME, O_CREAT | O_EXCL, S_IRUSR | S_IWUSR, 0);
     if (semaphore == SEM_FAILED) {
         if (errno == EEXIST) {
-            
             semaphore = sem_open(SEM_NAME, 0);
         } else {
             perror("semaphore_open");
@@ -72,8 +70,9 @@ int main() {
         sem_unlink(SEM_NAME); 
         munmap(shared_data, file_size);
         close(file_descriptor);
-        unlink(SHARED_FILE);
+        shm_unlink(SHARED_FILE); 
         exit(EXIT_SUCCESS);
     }
+
     return 0;
 }
