@@ -3,22 +3,22 @@
 #include <stdlib.h>
 
 int main() {
-    const char* libPath1 = "./library_first.so";
-    const char* libPath2 = "./library_second.so";
+    const char* lib_Path_1 = "./library_first.so";
+    const char* lib_Path_2 = "./library_second.so";
 
-    void *lib = dlopen(libPath1, RTLD_LAZY);
+    void *library = dlopen(lib_Path_1, RTLD_LAZY);
 
-    if (!lib) {
+    if (!library) {
         fprintf(stderr, "Error loading initial library.\n");
         return 1;
     }
 
-    int (*gcfFunction)(int, int) = dlsym(lib, "GCF");
-    char* (*translationFunction)(long) = dlsym(lib, "translation");
+    int (*gcf_Function)(int, int) = dlsym(library, "GCF");
+    char* (*translation_Function)(long) = dlsym(library, "translation");
 
-    if (!gcfFunction || !translationFunction) {
+    if (!gcf_Function || !translation_Function) {
         fprintf(stderr, "Error getting function pointers.\n");
-        dlclose(lib);
+        dlclose(library);
         return 1;
     }
 
@@ -33,24 +33,24 @@ int main() {
 
         switch (choice) {
             case 0:
-                dlclose(lib);
-                if (lib == dlopen(libPath1, RTLD_LAZY)) {
-                    lib = dlopen(libPath2, RTLD_LAZY);
+                dlclose(library);
+                if (library == dlopen(lib_Path_1, RTLD_LAZY)) {
+                    library = dlopen(lib_Path_2, RTLD_LAZY);
                 } else {
-                    lib = dlopen(libPath1, RTLD_LAZY);
+                    library = dlopen(lib_Path_1, RTLD_LAZY);
                 }
 
-                if (!lib) {
+                if (!library) {
                     fprintf(stderr, "Error loading library.\n");
                     return 1;
                 }
 
-                gcfFunction = dlsym(lib, "GCF");
-                translationFunction = dlsym(lib, "translation");
+                gcf_Function = dlsym(library, "GCF");
+                translation_Function = dlsym(library, "translation");
 
-                if (!gcfFunction || !translationFunction) {
+                if (!gcf_Function || !translation_Function) {
                     fprintf(stderr, "Error getting function pointers.\n");
-                    dlclose(lib);
+                    dlclose(library);
                     return 1;
                 }
 
@@ -60,7 +60,7 @@ int main() {
                 printf("Enter two numbers\n");
                 int arg1, arg2;
                 scanf("%d %d", &arg1, &arg2);
-                int result = gcfFunction(arg1, arg2);
+                int result = gcf_Function(arg1, arg2);
                 printf("GCF result: %d\n", result);
                 break;
             }
@@ -69,20 +69,24 @@ int main() {
                 printf("Enter number, which u would translate\n");
                 long arg;
                 scanf("%ld", &arg);
-                char* result = translationFunction(arg);
+                char* result = translation_Function(arg);
                 printf("Translation result: %s\n", result);
                 free(result);
                 break;
             }
+
+            case 3:
+                printf("Exiting the program.\n");
+                return 0;
 
             default:
                 printf("Invalid choice. Please try again.\n");
                 break;
         }
 
-    } while (choice != -1);
+    } while (choice != 3);
 
-    dlclose(lib);
+    dlclose(library);
 
     return 0;
 }

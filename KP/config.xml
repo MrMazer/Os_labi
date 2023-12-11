@@ -1,0 +1,24 @@
+<dag>
+    <job id="1">
+        <!-- Нет зависимостей, стартовая задача -->
+    </job>
+    <job id="2">
+        <dependency>1</dependency>
+    </job>
+    <job id="3">
+        <dependency>1</dependency>
+    </job>
+    <job id="4">
+        <dependency>2</dependency>
+        <dependency>3</dependency>
+    </job>
+    <job id="5">
+        <dependency>4</dependency>
+    </job>
+    <job id="6">
+        <dependency>5</dependency>
+    </job>
+    <job id="7">
+        <!-- Нет зависимостей, завершающая задача -->
+    </job>
+</dag>
